@@ -11,8 +11,12 @@ Type the following command to run the program:
 ```
 
 Selection_method
+<br/>
     0 -> Tournament selection
+<br/>
     1 -> Roulette wheel selection
+<br/>
+
 For example
 ```cpp
 ./GA 1 10000 100 100 0.9 0.1 0 
