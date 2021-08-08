@@ -32,6 +32,7 @@ public:
         srand((unsigned)time(NULL));
         Run_set(MAX_NFE / Pop, Run);
         double START, END;
+        START = clock();
         for (int i = 0; i < Run; i++)
         {
             Set(Pop, Dim, Crossover, Mutation);
@@ -40,16 +41,17 @@ public:
             {
                 Transition(Pop, Dim, S_method);
                 Evaluation(Pop, Dim, MAX_NFE);
-                cout << NFE << ' ' << Current_best_obj << endl;
-                Run_evaluation.push_back(Current_best_obj);
             }
+            Run_result[i] = Current_best_obj;
         }
+        END = clock();
+        Output(Run, MAX_NFE, Dim, Pop, Crossover, Mutation, START, END, S_method);
     }
 
 private:
     i2d chromosome;       //solution
     i1d objective;        //objective value
-    int Current_best_obj; //record current best objective value.
+    int Current_best_obj; //record current best objective value.;
     double CR;            //crossover rate
     double M;             //Mutation rate
     int NFE;
@@ -75,8 +77,9 @@ private:
         M = Mutation;
         NFE = 0;
     }
-    void Run_set(int iteration, int Run)
+    void Run_set(int Iter, int Run)
     {
+        Run_evaluation.resize(Iter, 0);
         Run_result.resize(Run, 0);
     }
     void Initial(int Pop, int Dim, int MAX_NFE) //random initial
@@ -92,6 +95,7 @@ private:
     }
     void Evaluation(int Pop, int Dim, int MAX_NFE)
     {
+        int chc = 1; //record evaluation or not
         for (int i = 0; i < Pop; i++)
         {
             objective[i] = 0;
@@ -103,8 +107,13 @@ private:
                 Current_best_obj = objective[i];
             NFE++;
             if (NFE > MAX_NFE)
+            {
+                chc = 0;
                 break;
+            }
         }
+        if (chc)
+            Run_evaluation[NFE / Pop - 1] += Current_best_obj;
     }
     void Transition(int Pop, int Dim, int S_method)
     {
@@ -117,7 +126,8 @@ private:
         i2d temp;
         if (S_method == 0)
             temp = tournament(Pop, Dim);
-
+        else
+            temp = Roulette_wheel(Pop, Dim);
         return temp;
     }
     i2d tournament(int Pop, int Dim)
@@ -143,6 +153,43 @@ private:
             }
             temp[i] = chromosome[chc];
             i++;
+        }
+        return temp;
+    }
+    int P_index(d1d P) //check the probability fall into which region.
+    {
+        double r = randomDouble();
+        int ind = 0;
+        for (int i = 0; i < P.size(); i++)
+        {
+            if (r < P[i])
+            {
+                ind = i;
+                break;
+            }
+        }
+        return ind;
+    }
+    i2d Roulette_wheel(int Pop, int Dim)
+    {
+        i2d temp = chromosome;
+        int sum_obj = 0;
+        d1d P(objective.size(), 0);                //probability set
+        for (int i = 0; i < objective.size(); i++) //calculate sum of objective value
+        {
+            sum_obj += objective[i];
+        }
+        P[0] = double(objective[0]) / sum_obj;
+        for (int i = 1; i < P.size(); i++)
+        {
+            P[i] = double(objective[i]) / sum_obj + P[i - 1];
+            // cout << P[i] << endl;
+        }
+
+        for (int i = 0; i < temp.size(); i++)
+        {
+            int ind = P_index(P);
+            temp[i] = chromosome[ind];
         }
         return temp;
     }
@@ -187,5 +234,36 @@ private:
                     chromosome[i][M_point] = 0;
             }
         }
+    }
+    void Output(int run, int MAX_NFE, int dim, int pop, double CR, double M, double START, double END, int S_method)
+    {
+        int Run_AVG = 0;
+        int Run_Best = 0;
+        for (int i = 0; i < run; i++)
+        {
+            Run_AVG += Run_result[i];
+
+            if (Run_result[i] > Run_Best)
+                Run_Best = Run_result[i];
+        }
+
+        Run_AVG /= run;
+        for (int i = 0; i < Run_evaluation.size(); i++)
+        {
+            cout << (i + 1) * pop << ' ' << double(Run_evaluation[i]) / run << endl; //using double to observe average convergence status.
+        }
+        cout << "# Run : " << run << endl;
+        cout << "# Evaluation : " << MAX_NFE << endl;
+        cout << "# Dimension : " << dim << endl;
+        cout << "# Population : " << pop << endl;
+        cout << "# Crossover Rate : " << CR << endl;
+        cout << "# Mutation Rate : " << M << endl;
+        if (S_method == 0)
+            cout << "# Selection Method : Tournament selection " << endl;
+        else
+            cout << "# Selection Method : Roulette wheel selection " << endl;
+        cout << "# Best Objective : " << Run_Best << endl;
+        cout << "# Average Objective : " << Run_AVG << endl;
+        cout << "# Execution Time : " << (END - START) / CLOCKS_PER_SEC << "(s)" << endl;
     }
 };

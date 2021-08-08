@@ -11,11 +11,13 @@ Type the following command to run the program:
 ```
 
 Selection_method
-<br/>
-    0 -> Tournament selection
-<br/>
-    1 -> Roulette wheel selection
-<br/>
+
+
+0 -> Tournament selection
+
+
+1 -> Roulette wheel selection
+
 
 For example
 ```cpp
